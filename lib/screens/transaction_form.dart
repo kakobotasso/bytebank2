@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:bytebank2/components/response_dialog.dart';
+import 'package:bytebank2/components/transaction_auth_dialog.dart';
 import 'package:bytebank2/http/webclients/transaction_webclient.dart';
 import 'package:bytebank2/models/contact.dart';
 import 'package:bytebank2/models/transaction.dart';
@@ -58,15 +62,23 @@ class _TransactionFormState extends State<TransactionForm> {
                 child: SizedBox(
                   width: double.maxFinite,
                   child: RaisedButton(
-                    child: Text('Transfer'), onPressed: () {
-                      final double value = double.tryParse(_valueController.text);
-                      final transactionCreated = Transaction(value, widget.contact);
-                      _webClient.save(transactionCreated).then((transactionReceived) {
-                        if(transactionReceived != null) {
-                          Navigator.pop(context);
-                        }
-                      });
-                  },
+                    child: Text('Transfer'),
+                    onPressed: () {
+                      final double value =
+                          double.tryParse(_valueController.text);
+                      final transactionCreated =
+                          Transaction(value, widget.contact);
+                      showDialog(
+                        context: context,
+                        builder: (contextDialog) {
+                          return TransactionAuthDialog(
+                            onConfirm: (password) {
+                              _save(transactionCreated, password, context);
+                            },
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               )
@@ -75,5 +87,56 @@ class _TransactionFormState extends State<TransactionForm> {
         ),
       ),
     );
+  }
+
+  void _save(Transaction transactionCreated, String password,
+      BuildContext context) async {
+    Transaction transaction =
+        await _send(transactionCreated, password, context);
+
+    await _showSuccessfullMessage(transaction, context);
+  }
+
+  Future _showSuccessfullMessage(
+      Transaction transaction, BuildContext context) async {
+    if (transaction != null) {
+      await showDialog(
+          context: context,
+          builder: (contextDialog) {
+            return SuccessDialog('successful transaction');
+          });
+      Navigator.pop(context);
+    }
+  }
+
+  Future<Transaction> _send(Transaction transactionCreated, String password,
+      BuildContext context) async {
+    final Transaction transaction =
+        await _webClient.save(transactionCreated, password).catchError((e) {
+      _showFailureMessage(
+        context,
+        message: e.message,
+      );
+    }, test: (e) => e is HttpException).catchError((e) {
+      _showFailureMessage(
+        context,
+        message: 'timeout submitting the transaction',
+      );
+    }, test: (e) => e is TimeoutException).catchError((e) {
+      _showFailureMessage(context);
+    }, test: (e) => e is Exception);
+
+    return transaction;
+  }
+
+  void _showFailureMessage(
+    BuildContext context, {
+    String message = 'Unknown error',
+  }) {
+    showDialog(
+        context: context,
+        builder: (contextDialog) {
+          return FailureDialog(message);
+        });
   }
 }

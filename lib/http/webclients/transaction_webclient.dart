@@ -5,14 +5,14 @@ import 'package:bytebank2/models/transaction.dart';
 
 class TransactionWebClient {
   Future<List<Transaction>> findAll() async {
-    final response = await client.get(baseUrl).timeout(Duration(seconds: 5));
+    final response = await client.get(baseUrl);
     final List<dynamic> decodedJson = jsonDecode(response.body);
     return decodedJson
         .map((dynamic json) => Transaction.fromJson(json))
         .toList();
   }
 
-  Future<Transaction> save(Transaction transaction) async {
+  Future<Transaction> save(Transaction transaction, String password) async {
     Map<String, dynamic> transactionMap = transaction.toJson();
 
     final String transactionJson = jsonEncode(transactionMap);
@@ -21,11 +21,29 @@ class TransactionWebClient {
         .post(baseUrl,
             headers: {
               'Content-type': 'application/json',
-              'password': '1000',
+              'password': password,
             },
-            body: transactionJson)
-        .timeout(Duration(seconds: 5));
+            body: transactionJson);
 
-    return Transaction.fromJson(jsonDecode(response.body));
+    if (response.statusCode == 200) {
+      return Transaction.fromJson(jsonDecode(response.body));
+    }
+
+    throw HttpException(_statusCodeResponses[response.statusCode]);
+    //_throwHttpError(response.statusCode);
   }
+
+  void _throwHttpError(int statusCode) =>
+      throw Exception(_statusCodeResponses[statusCode]);
+
+  static final Map<int, String> _statusCodeResponses = {
+    400: 'there was an error submitting transaction',
+    401: 'authentication failed',
+  };
+}
+
+class HttpException implements Exception {
+  final String message;
+
+  HttpException(this.message);
 }
