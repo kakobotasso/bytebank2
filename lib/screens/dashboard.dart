@@ -1,3 +1,4 @@
+import 'package:bytebank2/dao/contact_dao.dart';
 import 'package:bytebank2/screens/contacts_list.dart';
 import 'package:bytebank2/screens/transactions_list.dart';
 import 'package:flutter/material.dart';

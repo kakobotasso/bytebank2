@@ -3,6 +3,7 @@ import 'package:bytebank2/dao/contact_dao.dart';
 import 'package:bytebank2/models/contact.dart';
 import 'package:bytebank2/screens/contact_form.dart';
 import 'package:bytebank2/screens/transaction_form.dart';
+import 'package:bytebank2/widgets/app_dependencies.dart';
 import 'package:flutter/material.dart';
 
 class ContactsList extends StatefulWidget {
@@ -11,17 +12,17 @@ class ContactsList extends StatefulWidget {
 }
 
 class _ContactsListState extends State<ContactsList> {
-  final ContactDAO _contactDAO = ContactDAO();
 
   @override
   Widget build(BuildContext context) {
+    final dependencies = AppDependencies.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text('Transfer'),
       ),
       body: FutureBuilder<List<Contact>>(
         initialData: List(),
-        future: _contactDAO.findAll(),
+        future: dependencies.contactDAO.findAll(),
         builder: (context, snapshot) {
 //          BOM VALIDAR SE O SNAPSHOT É VAZIO, PQ O FUTURE PODE DEMORAR
 //          QUANDO UTILIZAR O initialData:, NÃO TEM NECESSIDADE DESSA VALIDAÇÃO
@@ -46,7 +47,7 @@ class _ContactsListState extends State<ContactsList> {
               return ListView.builder(
                 itemBuilder: (context, index) {
                   final Contact contact = contactsList[index];
-                  return _ContactItem(contact, onClick: () {
+                  return ContactItem(contact, onClick: () {
                     debugPrint('Entrei aqui');
                     Navigator.of(context).push(MaterialPageRoute(builder: (context) => TransactionForm(contact)));
                   },);
@@ -87,11 +88,11 @@ class _ContactsListState extends State<ContactsList> {
   }
 }
 
-class _ContactItem extends StatelessWidget {
+class ContactItem extends StatelessWidget {
   final Contact contact;
   final Function onClick;
 
-  _ContactItem(
+  ContactItem(
     this.contact, {
     @required this.onClick,
   });
